@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AeroBot</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #0a0e1a;
+      color: #e0f0ff;
+      font-family: 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 32px;
+    }
+
+    h1 {
+      font-size: 2rem;
+      letter-spacing: 6px;
+      color: #4fc3f7;
+      text-transform: uppercase;
+    }
+
+    h1 span { color: #ffffff; }
+
+    #ring {
+      width: 160px;
+      height: 160px;
+      border-radius: 50%;
+      border: 3px solid #1a3a5c;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    #ring::before {
+      content: '';
+      position: absolute;
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      border: 1px solid #4fc3f755;
+      animation: none;
+    }
+
+    #ring.listening::before {
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+
+    #ring.listening {
+      border-color: #4fc3f7;
+      box-shadow: 0 0 30px #4fc3f755;
+    }
+
+    @keyframes pulse {
+      0%   { transform: scale(1);    opacity: 0.6; }
+      50%  { transform: scale(1.15); opacity: 0.2; }
+      100% { transform: scale(1);    opacity: 0.6; }
+    }
+
+    #mic-icon {
+      font-size: 3rem;
+      user-select: none;
+    }
+
+    #status {
+      font-size: 0.85rem;
+      color: #4fc3f7;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      min-height: 20px;
+    }
+
+    #chat {
+      width: 90%;
+      max-width: 640px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 40vh;
+      overflow-y: auto;
+    }
+
+    .bubble {
+      padding: 12px 16px;
+      border-radius: 12px;
+      max-width: 85%;
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+
+    .bubble.user {
+      background: #1a3a5c;
+      align-self: flex-end;
+      border-bottom-right-radius: 3px;
+    }
+
+    .bubble.bot {
+      background: #0d2137;
+      border: 1px solid #1a3a5c;
+      align-self: flex-start;
+      border-bottom-left-radius: 3px;
+    }
+
+    #lang-toggle {
+      display: flex;
+      gap: 8px;
+    }
+
+    #lang-toggle button {
+      padding: 6px 18px;
+      border-radius: 20px;
+      border: 1px solid #1a3a5c;
+      background: transparent;
+      color: #7ab0cc;
+      cursor: pointer;
+      font-size: 0.8rem;
+      letter-spacing: 1px;
+      transition: all 0.2s;
+    }
+
+    #lang-toggle button.active {
+      background: #4fc3f7;
+      color: #0a0e1a;
+      border-color: #4fc3f7;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Aero<span>Bot</span></h1>
+
+  <div id="lang-toggle">
+    <button id="btn-es" class="active" onclick="setLang('es')">ES</button>
+    <button id="btn-en" onclick="setLang('en')">EN</button>
+  </div>
+
+  <div id="ring" onclick="toggleListen()">
+    <span id="mic-icon">🎙️</span>
+  </div>
+
+  <div id="status">Toca para hablar</div>
+
+  <div id="chat"></div>
+
+  <script>
+    const API = 'http://127.0.0.1:8000';
+    let lang = 'es';
+    let listening = false;
+    let recognition;
+
+    const ring    = document.getElementById('ring');
+    const status  = document.getElementById('status');
+    const chat    = document.getElementById('chat');
+
+    function setLang(l) {
+      lang = l;
+      document.getElementById('btn-es').classList.toggle('active', l === 'es');
+      document.getElementById('btn-en').classList.toggle('active', l === 'en');
+      status.textContent = l === 'es' ? 'Toca para hablar' : 'Tap to speak';
+    }
+
+    function addBubble(text, who) {
+      const div = document.createElement('div');
+      div.className = `bubble ${who}`;
+      div.textContent = text;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function speak(text, language) {
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = language === 'es' ? 'es-ES' : 'en-US';
+      utter.rate = 1.05;
+      speechSynthesis.speak(utter);
+    }
+
+    async function sendQuestion(question) {
+      status.textContent = lang === 'es' ? 'Pensando...' : 'Thinking...';
+      addBubble(question, 'user');
+
+      try {
+        const res = await fetch(`${API}/ask/text`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question, language: lang }),
+        });
+        if (!res.ok) {
+          const err = await res.text();
+          addBubble(`Error del servidor (${res.status}): ${err}`, 'bot');
+          return;
+        }
+        const data = await res.json();
+        addBubble(data.answer, 'bot');
+        speak(data.answer, lang);
+      } catch (e) {
+        addBubble(`Error: ${e.message}`, 'bot');
+      }
+
+      status.textContent = lang === 'es' ? 'Toca para hablar' : 'Tap to speak';
+    }
+
+    function toggleListen() {
+      if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        alert('Tu browser no soporta reconocimiento de voz. Usa Chrome.');
+        return;
+      }
+
+      if (listening) {
+        recognition.stop();
+        return;
+      }
+
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognition = new SR();
+      recognition.lang = lang === 'es' ? 'es-ES' : 'en-US';
+      recognition.interimResults = false;
+
+      recognition.onstart = () => {
+        listening = true;
+        ring.classList.add('listening');
+        status.textContent = lang === 'es' ? 'Escuchando...' : 'Listening...';
+      };
+
+      recognition.onresult = (e) => {
+        const transcript = e.results[0][0].transcript;
+        sendQuestion(transcript);
+      };
+
+      recognition.onend = () => {
+        listening = false;
+        ring.classList.remove('listening');
+      };
+
+      recognition.onerror = () => {
+        listening = false;
+        ring.classList.remove('listening');
+        status.textContent = lang === 'es' ? 'No te escuché, intenta de nuevo' : 'Could not hear you, try again';
+      };
+
+      recognition.start();
+    }
+  </script>
+</body>
+</html>
