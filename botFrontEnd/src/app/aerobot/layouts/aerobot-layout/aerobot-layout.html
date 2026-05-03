@@ -1,1 +1,95 @@
-<p>aerobot-layout works!</p>
+<div class="drawer lg:drawer-open">
+  <input id="my-drawer-4" type="checkbox" class="drawer-toggle" />
+  <div class="drawer-content">
+
+    <!-- Navbar -->
+    <nav class="navbar w-full bg-base-300">
+      <label for="my-drawer-4" aria-label="open sidebar" class="btn btn-square btn-ghost">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-linejoin="round" stroke-linecap="round" stroke-width="2" fill="none" stroke="currentColor" class="my-1.5 inline-block size-4"><path d="M4 4m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z"></path><path d="M9 4v16"></path><path d="M14 10l2 2l-2 2"></path></svg>
+      </label>
+      <div class="px-4">
+        <span class="font-press-start-2p text-cyan-300">
+          DEMO
+      </span>
+      · Aerobot</div>
+    </nav>
+    <!-- Page content here -->
+    <div class="p-4">
+        <router-outlet />
+    </div>
+  </div>
+
+  <div class="drawer-side is-drawer-close:overflow-visible">
+    <label for="my-drawer-4" aria-label="close sidebar" class="drawer-overlay"></label>
+    <div class="flex min-h-full flex-col items-start bg-base-200 is-drawer-close:w-20 is-drawer-open:w-44">
+      <!-- Sidebar content here -->
+      <ul class="menu w-full grow">
+        <!-- List item -->
+        @for (item of list_items; track item.path) {
+          <li>
+            <a
+              [routerLink]="item.path"
+              routerLinkActive="btn btn-soft"
+              class="my-2 transition-all duration-500 hover:bg-soft hover:text-soft-content hover:translate-x-1 active:scale-95">
+              <i [class]="item.icon"></i>
+              <span class="is-drawer-close:hidden">{{ item.label }}</span>
+            </a>
+          </li>
+        }
+
+        <div class="mt-auto">
+          <li class="my-2">
+            <a routerLink="/" class="transition-all duration-500 hover:bg-soft hover:text-soft-content hover:translate-x-1 active:scale-95">
+              <i class="fa-solid fa-gear"></i>
+              <span class="is-drawer-close:hidden">Settings</span>
+            </a>
+          </li>
+
+          <li class="my-2">
+            <a routerLink="/" class="transition-all duration-500 hover:bg-soft hover:text-soft-content hover:translate-x-1 active:scale-95">
+              <i class="fa-regular fa-user"></i>
+              <span class="is-drawer-close:hidden">Profile</span>
+            </a>
+          </li>
+
+          <!-- Logout -->
+          <li class="my-2">
+            <a routerLink="/" class="transition-all duration-500 hover:bg-soft hover:text-soft-content hover:translate-x-1 active:scale-95">
+              <i class="fa-solid fa-right-from-bracket"></i>
+              <span class="is-drawer-close:hidden">Logout</span>
+            </a>
+          </li>
+        </div>
+      </ul>
+    </div>
+  </div>
+</div>
+  <div class="drawer-side is-drawer-close:overflow-visible">
+    <label for="my-drawer-4" aria-label="close sidebar" class="drawer-overlay"></label>
+    <div class="flex min-h-full flex-col items-start bg-base-200 is-drawer-close:w-20 is-drawer-open:w-64">
+      <!-- Sidebar content here -->
+      <ul class="menu w-full grow">
+        <!-- List item -->
+        @for (item of list_items; track $index) {
+          <li>
+            <a
+              [routerLink]="item.path"
+              routerLinkActive="btn btn-soft"
+              class="is-drawer-close:tooltip is-drawer-close:tooltip-right my-2">
+              <i [class]="item.icon"></i>
+              <span class="is-drawer-close:hidden">{{ item.label }}</span>
+            </a>
+          </li>
+        }
+
+        <!-- Logout -->
+        <li class="mt-auto">
+          <a routerLink="/" class="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip=" logout">
+            <i class="fa-solid fa-right-from-bracket"></i>
+            <span class="is-drawer-close:hidden">Logout</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+  </div>
+

@@ -1,3 +1,257 @@
-/* You can add global styles to this file, and also import other style files */
-
 @import 'tailwindcss';
+@plugin "daisyui" {
+  themes: corporate --default, sunset --default;
+}
+
+
+@font-face {
+  font-family: 'Shadow Into Light';
+  src: url("../public/assets/fonts/Shadows_Into_Light/ShadowsIntoLight-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Goldman Bold';
+  src: url("../public/assets/fonts/Goldman/Goldman-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Goldman Regular';
+  src: url("../public/assets/fonts/Goldman/Goldman-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Press Start 2P';
+  src: url("../public/assets/fonts/Press_Start_2P/PressStart2P-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-display: swap;
+}
+
+@theme {
+  --font-shadow-into-light: "Shadow Into Light", sans-serif;
+  --font-goldman-bold: "Goldman Bold", sans-serif;
+  --font-goldman-regular: "Goldman Regular", sans-serif;
+  --font-press-start-2p: "Press Start 2P", sans-serif;
+  --color-neon-cyan: #22d3ee;
+  --color-neon-blue: #3b82f6;
+  --color-neon-purple: #a855f7;
+  --color-neon-pink: #ec4899;
+  --animate-neon-pulse: neon-pulse 2s ease-in-out infinite;
+  --animate-neon-glow: neon-glow 3s ease-in-out infinite;
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-twinkle: twinkle 4s ease-in-out infinite;
+  --animate-shooting-star: shooting-star 3s ease-out infinite;
+}
+
+@keyframes neon-pulse {
+  0%, 100% { box-shadow: 0 0 5px var(--color-neon-cyan), 0 0 10px var(--color-neon-cyan), 0 0 20px rgba(34, 211, 238, 0.3); }
+  50% { box-shadow: 0 0 10px var(--color-neon-cyan), 0 0 20px var(--color-neon-cyan), 0 0 40px rgba(34, 211, 238, 0.5); }
+}
+
+@keyframes neon-glow {
+  0%, 100% { filter: drop-shadow(0 0 5px var(--color-neon-cyan)); }
+  50% { filter: drop-shadow(0 0 15px var(--color-neon-cyan)) drop-shadow(0 0 30px var(--color-neon-purple)); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+@keyframes shooting-star {
+  0% {
+    transform: translateX(0) translateY(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(120vw) translateY(100px);
+    opacity: 0;
+  }
+}
+
+@layer components {
+  .reveal-on-scroll {
+    opacity: 0;
+    transform: translateY(40px);
+    transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+  }
+
+  .reveal-on-scroll.revealed {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .reveal-scale {
+    opacity: 0;
+    transform: scale(0.9);
+    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+  }
+
+  .reveal-scale.revealed {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  .reveal-slide-left {
+    opacity: 0;
+    transform: translateX(-50px);
+    transition: opacity 0.7s ease-out, transform 0.7s ease-out;
+  }
+
+  .reveal-slide-left.revealed {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  .reveal-slide-right {
+    opacity: 0;
+    transform: translateX(50px);
+    transition: opacity 0.7s ease-out, transform 0.7s ease-out;
+  }
+
+  .reveal-slide-right.revealed {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  .neon-border {
+    position: relative;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(34, 211, 238, 0.3);
+    backdrop-filter: blur(10px);
+  }
+
+  .neon-border::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    background: linear-gradient(90deg, var(--color-neon-cyan), var(--color-neon-purple), var(--color-neon-cyan));
+    border-radius: inherit;
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .neon-border:hover::before {
+    opacity: 1;
+  }
+
+  .neon-border:hover {
+    border-color: transparent;
+    box-shadow: 0 0 10px var(--color-neon-cyan), 0 0 20px rgba(34, 211, 238, 0.4), inset 0 0 10px rgba(34, 211, 238, 0.1);
+  }
+
+  .neon-border-cyan {
+    border: 1px solid var(--color-neon-cyan);
+    box-shadow: 0 0 5px var(--color-neon-cyan), 0 0 10px rgba(34, 211, 238, 0.3), inset 0 0 5px rgba(34, 211, 238, 0.1);
+  }
+
+  .neon-border-purple {
+    border: 1px solid var(--color-neon-purple);
+    box-shadow: 0 0 5px var(--color-neon-purple), 0 0 10px rgba(168, 85, 247, 0.3), inset 0 0 5px rgba(168, 85, 247, 0.1);
+  }
+
+  .neon-border-pink {
+    border: 1px solid var(--color-neon-pink);
+    box-shadow: 0 0 5px var(--color-neon-pink), 0 0 10px rgba(236, 72, 153, 0.3), inset 0 0 5px rgba(236, 72, 153, 0.1);
+  }
+
+  .neon-text {
+    text-shadow: 0 0 10px var(--color-neon-cyan), 0 0 20px rgba(34, 211, 238, 0.5);
+  }
+
+  .neon-text-cyan {
+    color: var(--color-neon-cyan);
+    text-shadow: 0 0 10px var(--color-neon-cyan), 0 0 20px var(--color-neon-cyan), 0 0 40px var(--color-neon-cyan);
+  }
+
+  .neon-text-purple {
+    color: var(--color-neon-purple);
+    text-shadow: 0 0 10px var(--color-neon-purple), 0 0 20px var(--color-neon-purple), 0 0 40px var(--color-neon-purple);
+  }
+
+  .glass {
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .star {
+    position: absolute;
+    border-radius: 50%;
+    background: white;
+    animation: twinkle var(--duration, 3s) ease-in-out infinite;
+    animation-delay: var(--delay, 0s);
+  }
+
+  .shooting-star {
+    position: absolute;
+    width: 100px;
+    height: 2px;
+    left: 0;
+    top: 30%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), white);
+    animation: shooting-star var(--duration, 2s) linear infinite;
+    animation-delay: var(--delay, 0s);
+  }
+
+  .nebula-bg {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    background: linear-gradient(180deg, #0a0a0f 0%, #0f0f1a 50%, #0a0a0f 100%);
+  }
+
+  .nebula-cloud {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(100px);
+    opacity: 0.4;
+    animation: float 20s ease-in-out infinite;
+  }
+
+  .nebula-1 {
+    width: 800px;
+    height: 800px;
+    background: radial-gradient(circle, rgba(34, 211, 238, 0.15) 0%, transparent 60%);
+    top: -20%;
+    left: -20%;
+  }
+
+  .nebula-2 {
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(168, 85, 247, 0.12) 0%, transparent 60%);
+    top: 30%;
+    right: -15%;
+  }
+
+  .nebula-3 {
+    width: 700px;
+    height: 700px;
+    background: radial-gradient(circle, rgba(236, 72, 153, 0.08) 0%, transparent 60%);
+    bottom: -10%;
+    left: 20%;
+  }
+
+  .section-gradient {
+    background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.3) 50%, transparent 100%);
+  }
+}
