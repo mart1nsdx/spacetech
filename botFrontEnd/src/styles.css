@@ -254,4 +254,8 @@
   .section-gradient {
     background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.3) 50%, transparent 100%);
   }
+
+  .logo-neon-hover:hover {
+    filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.9));
+  }
 }

@@ -11,8 +11,10 @@
         <span class="font-press-start-2p text-cyan-300">
           DEMO
       </span>
-      · Aerobot</div>
+        · Aerobot
+      </div>
     </nav>
+
     <!-- Page content here -->
     <div class="p-4">
         <router-outlet />
@@ -25,6 +27,18 @@
       <!-- Sidebar content here -->
       <ul class="menu w-full grow">
         <!-- List item -->
+
+        <li>
+          <div class="logo-neon-hover transition-all duration-300">
+          <img
+              [src]="logoUrl"
+              alt="Aerobot Logo"
+              routerLink="/"
+              class="w-32 h-16 object-contain"
+          />
+          </div>
+        </li>
+
         @for (item of list_items; track item.path) {
           <li>
             <a
@@ -37,28 +51,18 @@
           </li>
         }
 
-        <div class="mt-auto">
-          <li class="my-2">
-            <a routerLink="/" class="transition-all duration-500 hover:bg-soft hover:text-soft-content hover:translate-x-1 active:scale-95">
-              <i class="fa-solid fa-gear"></i>
-              <span class="is-drawer-close:hidden">Settings</span>
-            </a>
-          </li>
-
-          <li class="my-2">
-            <a routerLink="/" class="transition-all duration-500 hover:bg-soft hover:text-soft-content hover:translate-x-1 active:scale-95">
+        <div class="mt-auto mb-2 dropdown dropdown-top">
+          <div tabindex="0" role="button" class="btn m-1">
+              <a routerLink="/" class="transition-all duration-500 hover:bg-soft hover:text-soft-content hover:translate-x-1 active:scale-95">
               <i class="fa-regular fa-user"></i>
               <span class="is-drawer-close:hidden">Profile</span>
             </a>
-          </li>
-
-          <!-- Logout -->
-          <li class="my-2">
-            <a routerLink="/" class="transition-all duration-500 hover:bg-soft hover:text-soft-content hover:translate-x-1 active:scale-95">
-              <i class="fa-solid fa-right-from-bracket"></i>
-              <span class="is-drawer-close:hidden">Logout</span>
-            </a>
-          </li>
+          </div>
+            <ul tabindex="-1" class="dropdown-content menu bg-base-100 rounded-box z-1 w-52 p-2 shadow-sm">
+              <li><a>Profile</a></li>
+              <li><a>Settings</a></li>
+              <li><a routerLink="/">Log Out</a></li>
+            </ul>
         </div>
       </ul>
     </div>

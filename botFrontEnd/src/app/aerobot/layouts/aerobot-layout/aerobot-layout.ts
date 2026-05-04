@@ -15,4 +15,7 @@ export default class AerobotLayout {
     { path: '/aerobot/projects', label: 'Projects', icon: 'fa-solid fa-briefcase' },
     { path: '/aerobot/skills', label: 'Skills', icon: 'fa-regular fa-star' }
   ]
+
+  logoUrl = 'assets/images/logo.png';
+
 }
