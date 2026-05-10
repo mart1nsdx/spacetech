@@ -4,3 +4,6 @@
 [submodule "app/botBackEnd"]
 	path = app/botBackEnd
 	url = https://github.com/Jserranox/spacetech-backend.git
+[submodule "app/botWorker"]
+	path = app/botWorker
+	url = https://github.com/Jserranox/botWorker.git
