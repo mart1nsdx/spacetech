@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell($outFile = \"C:\\\\Users\\\\juanj\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-juanj-OneDrive-Documentos-spaceTech-AESS-spacetech\\\\2d14171d-b7ed-426b-a4ff-939e353cb48b\\\\tasks\\\\binf3zoll.output\"; $deadline = \\(Get-Date\\).AddSeconds\\(70\\); do { Start-Sleep -Seconds 4; $last = Get-Content $outFile | Select-Object -Last 1 } until \\($last -match \"\\(LOG|ERROR|error TS|successfully started|Application is running\\)\" -or \\(Get-Date\\) -gt $deadline\\); Get-Content $outFile | Select-Object -Last 40)",
+      "PowerShell($outFile = \"C:\\\\Users\\\\juanj\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-juanj-OneDrive-Documentos-spaceTech-AESS-spacetech\\\\2d14171d-b7ed-426b-a4ff-939e353cb48b\\\\tasks\\\\bu4wf9m11.output\"; $deadline = \\(Get-Date\\).AddSeconds\\(75\\); do { Start-Sleep -Seconds 4; $last = Get-Content $outFile | Select-Object -Last 1 } until \\($last -match \"\\(LOG|ERROR|error TS|Application is running|successfully started|ECONNREFUSED|connect ECONNREFUSED\\)\" -or \\(Get-Date\\) -gt $deadline\\); Get-Content $outFile | Select-Object -Last 40)",
+      "PowerShell($outFile = \"C:\\\\Users\\\\juanj\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-juanj-OneDrive-Documentos-spaceTech-AESS-spacetech\\\\2d14171d-b7ed-426b-a4ff-939e353cb48b\\\\tasks\\\\bg8weoziq.output\"; $deadline = \\(Get-Date\\).AddSeconds\\(75\\); do { Start-Sleep -Seconds 4; $last = Get-Content $outFile | Select-Object -Last 1 } until \\($last -match \"\\(LOG|ERROR|error TS|Application is running|successfully started|ECONNREFUSED|connect ECONNREFUSED\\)\" -or \\(Get-Date\\) -gt $deadline\\); Get-Content $outFile | Select-Object -Last 40)",
+      "PowerShell($outFile = \"C:\\\\Users\\\\juanj\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-juanj-OneDrive-Documentos-spaceTech-AESS-spacetech\\\\2d14171d-b7ed-426b-a4ff-939e353cb48b\\\\tasks\\\\bg8weoziq.output\"; $deadline = \\(Get-Date\\).AddSeconds\\(50\\); do { Start-Sleep -Seconds 4; $last = Get-Content $outFile | Select-Object -Last 1 } until \\($last -match \"\\(LOG|ERROR|Application is running|ECONNREFUSED\\)\" -or \\(Get-Date\\) -gt $deadline\\); Get-Content $outFile | Select-Object -Last 40)",
+      "PowerShell($outFile = \"C:\\\\Users\\\\juanj\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-juanj-OneDrive-Documentos-spaceTech-AESS-spacetech\\\\2d14171d-b7ed-426b-a4ff-939e353cb48b\\\\tasks\\\\bfzf252q3.output\"; $deadline = \\(Get-Date\\).AddSeconds\\(80\\); do { Start-Sleep -Seconds 4; $last = Get-Content $outFile | Select-Object -Last 1 } until \\($last -match \"\\(LOG|ERROR|Application is running|ECONNREFUSED|SyntaxError|successfully\\)\" -or \\(Get-Date\\) -gt $deadline\\); Get-Content $outFile | Select-Object -Last 45)",
+      "PowerShell($outFile = \"C:\\\\Users\\\\juanj\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-juanj-OneDrive-Documentos-spaceTech-AESS-spacetech\\\\2d14171d-b7ed-426b-a4ff-939e353cb48b\\\\tasks\\\\bfzf252q3.output\"; $deadline = \\(Get-Date\\).AddSeconds\\(50\\); do { Start-Sleep -Seconds 4; $last = Get-Content $outFile | Select-Object -Last 1 } until \\($last -match \"\\(LOG|ERROR|Application is running|ECONNREFUSED|SyntaxError\\)\" -or \\(Get-Date\\) -gt $deadline\\); Get-Content $outFile | Select-Object -Last 45)",
+      "Bash(pnpm exec *)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(netstat -ano)",
+      "Bash(findstr \":3000\")",
+      "Bash(findstr \"LISTENING\")",
+      "Bash(tasklist /FI \"PID eq 65888\" /FO LIST)",
+      "PowerShell(Get-Process -Id 65888)",
+      "PowerShell(Get-Process -Id 65888 -ErrorAction SilentlyContinue)",
+      "PowerShell(Stop-Process -Id 65888 -Force -Confirm:$false)"
+    ]
+  }
+}
