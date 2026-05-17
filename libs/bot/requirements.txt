@@ -1,9 +1,0 @@
-groq
-chromadb
-wikipedia-api
-requests
-fastapi
-uvicorn[standard]
-python-multipart
-SpeechRecognition
-python-dotenv

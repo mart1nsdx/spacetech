@@ -1,0 +1,11 @@
+packages:
+  - "libs/*"
+  - "botBackEnd"
+  - "botWorker"
+allowBuilds:
+  '@nestjs/core': true
+  '@scarf/scarf': false
+  bcrypt: true
+  msgpackr-extract: true
+  protobufjs: true
+  unrs-resolver: true

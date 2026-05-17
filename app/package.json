@@ -1,0 +1,31 @@
+{
+  "name": "aero-agent",
+  "version": "0.0.1",
+  "private": true,
+  "workspaces": [
+    "libs/*",
+    "botBackEnd",
+    "botWorker"
+  ],
+  "scripts": {
+    "dev:api": "pnpm --filter botBackEnd start:dev",
+    "dev:worker": "pnpm --filter botWorker start:dev",
+    "dev": "turbo run dev --parallel",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "migration:generate": "pnpm --filter @aero-agent/database typeorm migration:generate",
+    "migration:run": "pnpm --filter @aero-agent/database typeorm migration:run",
+    "migration:revert": "pnpm --filter @aero-agent/database typeorm migration:revert"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0",
+    "typescript": "^5.4.0",
+    "@types/node": "^20.0.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "typescript": "~5.7.3"
+    }
+  }
+}

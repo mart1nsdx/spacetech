@@ -3,6 +3,12 @@
 > Documento de referencia para Claude Code y el equipo de desarrollo.
 > Contiene todas las decisiones arquitecturales tomadas antes de escribir código.
 
+## Observacion General 
+
+Usar pnpm en lugar de npm, esta totalmente prohibido dentro de este proyecto usar npm
+# matar cualquier node en :3000 antes de arrancar
+Stop-Process -Id (Get-NetTCPConnection -LocalPort 3000 -State Listen).OwningProcess -Force -ErrorAction SilentlyContinue o pnpm run kill:port desde el directorio app/botBackEnd
+
 ---
 
 ## Visión general del producto

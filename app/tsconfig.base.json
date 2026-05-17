@@ -1,0 +1,40 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "ignoreDeprecations": "5.0",
+    "strict": true,
+    "strictNullChecks": true,
+    "noImplicitAny": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@libs/database": ["libs/database/src/index.ts"],
+      "@libs/database/*": ["libs/database/src/*"],
+      "@libs/queue": ["libs/queue/src/index.ts"],
+      "@libs/queue/*": ["libs/queue/src/*"],
+      "@libs/types": ["libs/types/src/index.ts"],
+      "@libs/types/*": ["libs/types/src/*"],
+      "@libs/logger": ["libs/logger/src/index.ts"],
+      "@libs/logger/*": ["libs/logger/src/*"],
+      "@nestjs/common": ["botBackEnd/node_modules/@nestjs/common"],
+      "@nestjs/common/*": ["botBackEnd/node_modules/@nestjs/common/*"],
+      "@nestjs/config": ["botBackEnd/node_modules/@nestjs/config"],
+      "@nestjs/config/*": ["botBackEnd/node_modules/@nestjs/config/*"],
+      "@nestjs/typeorm": ["botBackEnd/node_modules/@nestjs/typeorm"],
+      "@nestjs/typeorm/*": ["botBackEnd/node_modules/@nestjs/typeorm/*"],
+      "@nestjs/bullmq": ["botBackEnd/node_modules/@nestjs/bullmq"],
+      "@nestjs/bullmq/*": ["botBackEnd/node_modules/@nestjs/bullmq/*"],
+      "express": ["botBackEnd/node_modules/@types/express/index.d.ts"],
+      "typeorm": ["botBackEnd/node_modules/typeorm"],
+      "typeorm/*": ["botBackEnd/node_modules/typeorm/*"]
+    }
+  }
+}
