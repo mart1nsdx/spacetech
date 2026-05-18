@@ -125,6 +125,25 @@ app/
 
 ---
 
+## Estado de implementación
+
+| Módulo           | Fase   | Estado       | Archivos | Notas                              |
+|------------------|--------|--------------|----------|------------------------------------|
+| auth.module      | Fase 1 | ✅ Completo  | 23       | JWT + API Keys + Refresh rotation  |
+| tenants.module   | Fase 1 | ✅ Completo  | 18       | Multi-tenancy + RBAC + Plan limits |
+| bots.module      | Fase 2 | ✅ Completo  | 12       | Redis cache + multi-provider       |
+| chat.module      | Fase 2 | ✅ Completo  | 16       | WebSocket + streaming + RAG ctx    |
+| ai.module        | Fase 2 | ✅ Completo  | 14       | OpenAI, Anthropic, Groq, Ollama    |
+| rag.module       | Fase 2 | ✅ Completo  | 9        | pgvector + reranking               |
+| knowledge.module | Fase 3 | ⏳ Pendiente | —        | Doc upload + S3 + parsers          |
+| tools.module     | Fase 3 | ⏳ Pendiente | —        | NASA, ESA, FAA, web-search         |
+| webhooks.module  | Fase 4 | ⏳ Pendiente | —        | HMAC + retry exponencial           |
+| analytics.module | Fase 4 | ⏳ Pendiente | —        | Métricas + usage tracking          |
+| health.module    | Fase 4 | ⏳ Pendiente | —        | Liveness + readiness probes        |
+| common/          | Fase 5 | ⏳ Pendiente | —        | Filters, interceptors, pipes       |
+
+---
+
 ## Schema de base de datos
 
 ### Entidades principales (PostgreSQL)
@@ -312,8 +331,9 @@ ${retrievedContext}`
 - **Base pública aeroespacial**: documentos de NASA, ESA, FAA con `isPublicBase=true` y `botId=null`. Todos los bots la leen.
 - **Base privada por bot**: documentos subidos por el tenant con su `botId`. Solo ese bot la lee.
 - **Búsqueda**: siempre filtra `WHERE (bot_id = $botId OR is_public = true)` para mezclar ambas.
-- **Chunking**: `RecursiveCharacterTextSplitter` con `chunkSize=500`, `chunkOverlap=50`.
-- **Top-K**: recupera los 5 chunks más similares por consulta.
+- **Chunking**: `RecursiveCharacterTextSplitter` con `chunkSize=1500`, `chunkOverlap=200`.
+- **Top-K**: recupera los 5 chunks más similares por consulta (umbral mínimo cosine similarity: 0.72).
+- **Reranking**: boost +0.05 por cada keyword de la query que aparece en el chunk, ordenado DESC.
 
 ### Proveedores LLM intercambiables
 
@@ -326,6 +346,17 @@ anthropic → ChatAnthropic  (claude-sonnet-4-20250514)
 groq      → ChatGroq       (llama-3.1-70b — ultra rápido)
 ollama    → ChatOllama     (modelos locales — máxima privacidad)
 ```
+
+---
+
+## Proveedores LLM soportados
+
+| Provider  | Variable de entorno   | Modelos recomendados                              | Streaming |
+|-----------|-----------------------|---------------------------------------------------|-----------|
+| OpenAI    | OPENAI_API_KEY        | gpt-4o, gpt-4o-mini                               | ✅        |
+| Anthropic | ANTHROPIC_API_KEY     | claude-sonnet-4-6, claude-haiku-4-5-20251001      | ✅        |
+| Groq      | GROQ_API_KEY          | llama-3.3-70b-versatile, mixtral-8x7b-32768       | ✅        |
+| Ollama    | OLLAMA_BASE_URL       | llama3, mistral, phi3 (local, sin API key)        | ✅        |
 
 ---
 
@@ -446,6 +477,77 @@ Fase 6 — Producción
 
 ---
 
+## API Reference
+
+### Fase 1 — Auth & Tenants
+
+| Método | Ruta                                          | Descripción                              |
+|--------|-----------------------------------------------|------------------------------------------|
+| POST   | /auth/register                                | Registrar organización + usuario owner   |
+| POST   | /auth/login                                   | Login con email/password → JWT           |
+| POST   | /auth/refresh                                 | Rotar refresh token                      |
+| POST   | /auth/logout                                  | Invalidar refresh token                  |
+| GET    | /auth/me                                      | Perfil del usuario autenticado           |
+| POST   | /auth/api-keys                                | Crear API key                            |
+| GET    | /auth/api-keys                                | Listar API keys de la organización       |
+| DELETE | /auth/api-keys/:id                            | Revocar API key                          |
+| GET    | /organizations/me                             | Obtener organización propia              |
+| PATCH  | /organizations/:id                            | Actualizar organización                  |
+| POST   | /organizations/:id/transfer-ownership         | Transferir ownership                     |
+| DELETE | /organizations/:id                            | Eliminar organización                    |
+| GET    | /organizations/:orgId/members                 | Listar miembros                          |
+| POST   | /organizations/:orgId/members/invite          | Invitar miembro                          |
+| DELETE | /organizations/:orgId/members/:memberId       | Eliminar miembro                         |
+| PATCH  | /organizations/:orgId/members/:memberId/role  | Cambiar rol de miembro                   |
+| GET    | /organizations/:orgId/api-keys                | Listar API keys (scope org)              |
+| POST   | /organizations/:orgId/api-keys                | Crear API key (scope org)                |
+| DELETE | /organizations/:orgId/api-keys/:keyId         | Revocar API key (scope org)              |
+
+### Fase 2 — Core
+
+#### Bots
+
+| Método | Ruta          | Roles requeridos  | Descripción                        |
+|--------|---------------|-------------------|------------------------------------|
+| POST   | /bots         | ADMIN, OWNER      | Crear bot                          |
+| GET    | /bots         | cualquiera        | Listar bots de la organización     |
+| GET    | /bots/:id     | cualquiera        | Obtener bot por ID                 |
+| PATCH  | /bots/:id     | ADMIN, OWNER      | Actualizar bot (invalida cache)    |
+| DELETE | /bots/:id     | ADMIN, OWNER      | Soft delete (invalida cache)       |
+
+#### Chat (REST)
+
+| Método | Ruta                       | Descripción                        |
+|--------|----------------------------|------------------------------------|
+| POST   | /sessions                  | Crear sesión de chat               |
+| GET    | /sessions                  | Listar sesiones del usuario        |
+| GET    | /sessions/:id              | Obtener sesión con mensajes        |
+| DELETE | /sessions/:id              | Cerrar sesión                      |
+| GET    | /sessions/:id/messages     | Histórico paginado (cursor-based)  |
+
+#### Chat (WebSocket)
+
+Namespace: `/chat`  
+Autenticación: token JWT en `socket.handshake.auth.token`
+
+**Eventos emitidos por el cliente:**
+
+| Evento         | Payload                     | Descripción                        |
+|----------------|-----------------------------|------------------------------------|
+| join-session   | `{ sessionId }`             | Suscribirse a una sesión           |
+| message        | `{ sessionId, content }`    | Enviar mensaje al bot              |
+| end-session    | `{ sessionId }`             | Cerrar sesión activa               |
+
+**Eventos recibidos por el cliente:**
+
+| Evento         | Payload                                   | Descripción                        |
+|----------------|-------------------------------------------|------------------------------------|
+| chunk          | `{ sessionId, chunk, isLast }`            | Token del LLM en streaming         |
+| message-done   | `{ messageId, totalTokens }`              | Fin de generación                  |
+| error          | `{ message, code }`                       | Error en el procesamiento          |
+
+---
+
 ## Variables de entorno requeridas
 
 ```bash
@@ -465,6 +567,7 @@ S3_SECRET_KEY=minioadmin
 OPENAI_API_KEY=sk-...
 ANTHROPIC_API_KEY=sk-ant-...
 GROQ_API_KEY=gsk_...
+OLLAMA_BASE_URL=http://localhost:11434
 
 # Auth
 JWT_SECRET=cambiar-en-produccion
@@ -477,5 +580,60 @@ PORT=3000
 
 ---
 
-*Última actualización: diseño inicial — pre-código*
+## Issues pendientes
+
+### Infraestructura (bloqueantes para arranque completo)
+
+- **PostgreSQL + pgvector requeridos**: el backend no arranca sin conexión a Postgres. Levantar con `docker compose up -d` desde `infraestructura/docker/`.
+- **Redis requerido**: `BotsModule` crea el cliente `ioredis` en el factory de providers. Si Redis no está disponible, el módulo falla en `onModuleInit`. No hay modo degradado.
+- **pgvector extension**: si la extensión `vector` no está instalada en PostgreSQL, `RetrievalService.similaritySearch()` atrapa el error y retorna `[]` — el chat sigue funcionando pero sin contexto RAG. Instalar con `CREATE EXTENSION IF NOT EXISTS vector;`.
+
+### Módulos stub (sin rutas HTTP aún)
+
+Los siguientes módulos están importados en `app.module` pero sus controllers no tienen endpoints implementados todavía (Fase 3+):
+
+- `KnowledgeModule` — controllers `DocumentsController` e `IngestionController` vacíos
+- `WebhooksModule` — `WebhooksController` vacío
+- `AnalyticsModule` — `MetricController` vacío
+- `HealthModule` — `HealthController` vacío
+
+### RAG — Limitaciones actuales
+
+- El `RetrievalService` filtra solo por `bot_id`. La query no incluye la condición `OR is_public = true` del diseño arquitectural original — los chunks públicos (base aeroespacial) no se recuperan aún. Esto se resuelve al implementar `KnowledgeModule` con la ingesta de la base pública.
+- El `ChunkingService` usa `chunkSize=1500` (vs. `chunkSize=500` del diseño original). Ajustar si se observa pérdida de precisión en retrieval.
+
+### AppController
+
+`AppController` tiene `@HttpCode` pero no tiene decorator de método HTTP (`@Get()`, etc.) — no registra ninguna ruta. Agregar un health-check raíz `GET /` o eliminar el controller.
+
+### Tests
+
+No hay tests unitarios ni e2e para ningún módulo de Fase 2. Pendiente para estabilizar la suite antes de Fase 3.
+
+---
+
+## Changelog
+
+## [0.2.0] — 2026-05-18
+### Added
+- bots.module: CRUD de bots con Redis cache, validación por provider/model, plan limits
+- chat.module: WebSocket gateway con streaming en tiempo real, sesiones y mensajes REST
+- ai.module: capa de abstracción LLM con 4 providers (OpenAI, Anthropic, Groq, Ollama)
+- rag.module: similarity search con pgvector, chunking, reranking y embeddings
+- Integración RAG → Chat: contexto enriquecido antes de llamar al LLM
+### Changed
+- chat.module: reemplazado mock de AI_SERVICE con implementación real de ai.module
+- app.module: importados 4 nuevos módulos de Fase 2
+
+## [0.1.0] — diseño inicial
+### Added
+- Arquitectura y decisiones de diseño documentadas
+- libs/database: entities TypeORM (organizations, users, api_keys, bots, sessions, messages, knowledge_documents, document_chunks, analytics_events, webhooks)
+- infraestructura/docker: docker-compose con Postgres+pgvector, Redis, MinIO
+- botBackEnd/auth: JWT + refresh token rotation + API Keys + guards
+- botBackEnd/tenants: multi-tenancy con RBAC y plan limits
+
+---
+
+*Última actualización: 2026-05-18 — Fase 2 completa*  
 *Actualizar este archivo con cada decisión arquitectural relevante*
