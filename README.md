@@ -665,6 +665,17 @@ Los siguientes módulos están importados en `app.module` pero sus controllers a
 - **Function calling loop**: `AiService.generateWithTools()` detecta tool calls desde la respuesta JSON acumulada de la primera llamada. Los providers LLM actuales no procesan `config.tools` en streaming nativo — funciona con modelos OpenAI/Groq que retornan structured JSON, pero requiere verificación por provider en producción.
 - **S3/MinIO no verificado en seco**: `StorageService` inicializa el `S3Client` en el constructor; si las credenciales son incorrectas el error se manifiesta en runtime (upload/download), no en el arranque del módulo.
 
+### ~~`@libs/queue` — import fuera de outDir~~ ✅ Resuelto (2026-05-19)
+
+~~El `package.json` de `@aero-agent/queue` apuntaba a `"main": "src/index.ts"` en lugar del dist compilado. El path alias `@libs/queue` en tsconfig de botBackEnd y botWorker resolvía a fuente TypeScript fuera del `outDir`, rompiendo `nest build` y el binario de producción.~~
+
+**Corrección aplicada:**
+- `libs/queue/package.json` → `"main": "dist/index.js"` + `"types": "dist/index.d.ts"`
+- Eliminado alias `@libs/queue` de `tsconfig.base.json`, `botBackEnd/tsconfig.json` y `botWorker/tsconfig.json`
+- Todos los imports migrados de `@libs/queue` → `@aero-agent/queue` (patrón idéntico a `@aero-agent/database`)
+- `prebuild` añadido en botBackEnd y botWorker: compila `@aero-agent/queue` automáticamente antes de cada build de producción
+- `moduleNameMapper` de jest actualizado en ambos proyectos
+
 ### RAG — Limitaciones actuales
 
 - El `RetrievalService` filtra solo por `bot_id`. La query no incluye la condición `OR is_public = true` del diseño arquitectural original — los chunks públicos (base aeroespacial) no se recuperan aún. Esto se resuelve al implementar `KnowledgeModule` con la ingesta de la base pública.
@@ -681,6 +692,14 @@ No hay tests unitarios ni e2e para ningún módulo de Fase 2. Pendiente para est
 ---
 
 ## Changelog
+
+## [0.3.1] — 2026-05-19
+### Fixed
+- `@aero-agent/queue`: `package.json` corregido de `main: src/index.ts` → `main: dist/index.js` + `types: dist/index.d.ts`
+- Eliminado alias `@libs/queue` de los tres tsconfig del monorepo (base, botBackEnd, botWorker) — resuelve error "File is not under outDir" en el IDE y en `nest build`
+- Todos los imports migrados de `@libs/queue` → `@aero-agent/queue` (consistente con el patrón de `@aero-agent/database`)
+- Añadido script `prebuild` en botBackEnd y botWorker que compila `@aero-agent/queue` antes del build de producción
+- `moduleNameMapper` de jest actualizado en ambos proyectos
 
 ## [0.3.0] — 2026-05-19
 ### Added

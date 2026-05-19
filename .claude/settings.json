@@ -46,7 +46,10 @@
       "Read(//c/Users/juanj/**)",
       "Bash(echo \"Exit: $?\")",
       "Bash(echo \"EXIT_BACKEND:$?\")",
-      "Bash(echo \"EXIT_WORKER:$?\")"
+      "Bash(echo \"EXIT_WORKER:$?\")",
+      "Bash(npx eslint *)",
+      "Bash(echo \"BACKEND:$?\")",
+      "Bash(echo \"WORKER:$?\")"
     ]
   }
 }

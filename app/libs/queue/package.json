@@ -3,7 +3,8 @@
   "version": "0.0.1",
   "private": true,
   "type": "commonjs",
-  "main": "src/index.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc -p tsconfig.json"
   },
