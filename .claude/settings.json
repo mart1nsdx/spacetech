@@ -36,7 +36,17 @@
       "Bash(Sort-Object)",
       "Bash(node -e \"const p=require\\('./package.json'\\); ['openai','@anthropic-ai/sdk','groq-sdk','ollama'].forEach\\(d => console.log\\(d+':', p.dependencies[d] || p.devDependencies?.[d] || 'NOT FOUND'\\)\\)\")",
       "Bash(npx ts-node *)",
-      "Bash(node -e \"const p=require\\('./package.json'\\); const keys=[...Object.keys\\(p.dependencies||{}\\), ...Object.keys\\(p.devDependencies||{}\\)]; keys.filter\\(k=>k.includes\\('redis'\\)||k.includes\\('bull'\\)||k.includes\\('ioredis'\\)\\).forEach\\(k=>console.log\\(k\\)\\)\")"
+      "Bash(node -e \"const p=require\\('./package.json'\\); const keys=[...Object.keys\\(p.dependencies||{}\\), ...Object.keys\\(p.devDependencies||{}\\)]; keys.filter\\(k=>k.includes\\('redis'\\)||k.includes\\('bull'\\)||k.includes\\('ioredis'\\)\\).forEach\\(k=>console.log\\(k\\)\\)\")",
+      "Bash(Get-ChildItem -Path . -Force)",
+      "PowerShell(cd \"c:\\\\Users\\\\juanj\\\\OneDrive\\\\Documentos\\\\spaceTech AESS\\\\spacetech\" ; Get-ChildItem -Path app -Recurse | Select-Object -ExpandProperty FullName | foreach {$_.Replace\\('C:\\\\Users\\\\juanj\\\\OneDrive\\\\Documentos\\\\spaceTech AESS\\\\spacetech\\\\', ''\\)})",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\juanj\\\\OneDrive\\\\Documentos\\\\spaceTech AESS\\\\spacetech\" -Recurse)",
+      "Bash(Select-Object -Property FullName)",
+      "PowerShell(Get-ChildItem -Recurse \"c:\\\\Users\\\\juanj\\\\OneDrive\\\\Documentos\\\\spaceTech AESS\\\\spacetech\\\\apps\\\\botBackEnd\\\\src\" -Force | Select-Object FullName | ForEach-Object { $_.FullName } | Sort-Object)",
+      "Read(//c/Users/juanj/OneDrive/**)",
+      "Read(//c/Users/juanj/**)",
+      "Bash(echo \"Exit: $?\")",
+      "Bash(echo \"EXIT_BACKEND:$?\")",
+      "Bash(echo \"EXIT_WORKER:$?\")"
     ]
   }
 }

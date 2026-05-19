@@ -6,7 +6,7 @@
 ## Observacion General 
 
 Usar pnpm en lugar de npm, esta totalmente prohibido dentro de este proyecto usar npm
-# matar cualquier node en :3000 antes de arrancar
+### matar cualquier node en :3000 antes de arrancar
 Stop-Process -Id (Get-NetTCPConnection -LocalPort 3000 -State Listen).OwningProcess -Force -ErrorAction SilentlyContinue o pnpm run kill:port desde el directorio app/botBackEnd
 
 ---
@@ -123,6 +123,27 @@ app/
 └── ARCHITECTURE.md          # Este archivo
 ```
 
+### Pipeline de ingesta de documentos
+
+```
+Usuario sube archivo
+       ↓
+documents.controller  →  upload.service (valida MIME + tamaño)
+       ↓
+storage.service  →  S3/MinIO (almacena binario)
+       ↓
+ingestion-queue.service  →  BullMQ queue 'document-ingestion'
+       ↓  (procesamiento asíncrono en botWorker)
+DocumentIngestionProcessor
+  ├── storage.service.download()
+  ├── extraction.service (Strategy: PdfParser | DocxParser | TxtParser | UrlParser)
+  ├── chunking.service (RecursiveCharacterTextSplitter, chunk=1500, overlap=200)
+  ├── embedding.service (OpenAI text-embedding-3-small, batch de 50)
+  └── DocumentChunk.save() con vector pgvector
+       ↓
+KnowledgeDocument.status = READY
+```
+
 ---
 
 ## Estado de implementación
@@ -132,15 +153,15 @@ app/
 | auth.module      | Fase 1 | ✅ Completo  | 23       | JWT + API Keys + Refresh rotation  |
 | tenants.module   | Fase 1 | ✅ Completo  | 18       | Multi-tenancy + RBAC + Plan limits |
 | bots.module      | Fase 2 | ✅ Completo  | 12       | Redis cache + multi-provider       |
-| chat.module      | Fase 2 | ✅ Completo  | 16       | WebSocket + streaming + RAG ctx    |
-| ai.module        | Fase 2 | ✅ Completo  | 14       | OpenAI, Anthropic, Groq, Ollama    |
-| rag.module       | Fase 2 | ✅ Completo  | 9        | pgvector + reranking               |
-| knowledge.module | Fase 3 | ⏳ Pendiente | —        | Doc upload + S3 + parsers          |
-| tools.module     | Fase 3 | ⏳ Pendiente | —        | NASA, ESA, FAA, web-search         |
-| webhooks.module  | Fase 4 | ⏳ Pendiente | —        | HMAC + retry exponencial           |
-| analytics.module | Fase 4 | ⏳ Pendiente | —        | Métricas + usage tracking          |
-| health.module    | Fase 4 | ⏳ Pendiente | —        | Liveness + readiness probes        |
-| common/          | Fase 5 | ⏳ Pendiente | —        | Filters, interceptors, pipes       |
+| chat.module      | Fase 2 | ✅ Completo  | 16       | WebSocket streaming + RAG context        |
+| ai.module        | Fase 2 | ✅ Completo  | 14       | OpenAI, Anthropic, Groq, Ollama          |
+| rag.module       | Fase 2 | ✅ Completo  | 9        | pgvector + chunking + reranking          |
+| knowledge.module | Fase 3 | ✅ Completo  | 18       | S3/MinIO + parsers Strategy + BullMQ     |
+| tools.module     | Fase 3 | ✅ Completo  | 11       | NASA, ESA, FAA, SerpAPI + function call  |
+| webhooks.module  | Fase 4 | ⏳ Pendiente | —        | HMAC-SHA256 + retry exponencial          |
+| analytics.module | Fase 4 | ⏳ Pendiente | —        | Métricas + usage tracking                |
+| health.module    | Fase 4 | ⏳ Pendiente | —        | Liveness + readiness probes              |
+| common/          | Fase 5 | ⏳ Pendiente | —        | Filters, interceptors, pipes globales    |
 
 ---
 
@@ -546,6 +567,39 @@ Autenticación: token JWT en `socket.handshake.auth.token`
 | message-done   | `{ messageId, totalTokens }`              | Fin de generación                  |
 | error          | `{ message, code }`                       | Error en el procesamiento          |
 
+### Fase 3 — Ingesta de Conocimiento
+
+#### Documentos
+
+| Método | Ruta                      | Roles         | Descripción                             |
+|--------|---------------------------|---------------|-----------------------------------------|
+| POST   | /documents/upload         | ADMIN, OWNER  | Subir documento (multipart/form-data)   |
+| POST   | /documents/url            | ADMIN, OWNER  | Ingestar desde URL                      |
+| GET    | /documents                | cualquiera    | Listar documentos del bot (botId query) |
+| DELETE | /documents/:id            | ADMIN, OWNER  | Soft delete + eliminar de S3            |
+| GET    | /documents/:id/status     | cualquiera    | Estado del documento y job de ingesta   |
+| POST   | /documents/:id/reprocess  | ADMIN, OWNER  | Reencolar para reprocesar               |
+
+#### Formatos de documento soportados
+
+| Formato   | MIME type                                                      | Tamaño máx |
+|-----------|----------------------------------------------------------------|------------|
+| PDF       | application/pdf                                                | 20 MB      |
+| Word      | application/vnd.openxmlformats-officedocument.wordprocessingml.document | 20 MB |
+| Texto     | text/plain, text/markdown                                      | 20 MB      |
+| URL       | — (ingestar vía POST /documents/url)                           | —          |
+
+#### Tools disponibles para el LLM
+
+Activadas por bot con `useTools: true` en la entidad `Bot`. El LLM recibe los schemas en cada llamada y el `AiService.generateWithTools()` ejecuta el function calling loop automáticamente.
+
+| Tool         | Descripción                              | API Key requerida  |
+|--------------|------------------------------------------|--------------------|
+| nasa_search  | Imágenes, APOD y asteroides de NASA      | Opcional (DEMO_KEY)|
+| esa_missions | Misiones y ciencia de la ESA (TAP/ADQL)  | No                 |
+| faa_airspace | NOTAMs y espacio aéreo FAA               | No                 |
+| web_search   | Búsqueda web general (SerpAPI)           | Sí (SERPAPI_KEY)   |
+
 ---
 
 ## Variables de entorno requeridas
@@ -557,11 +611,19 @@ DATABASE_URL=postgresql://user:pass@localhost:5432/aeroBot
 # Redis
 REDIS_URL=redis://localhost:6379
 
-# Storage
+# Storage (S3 / MinIO — requerido para knowledge.module)
 S3_ENDPOINT=http://localhost:9000
-S3_BUCKET=aeroBot-docs
+S3_BUCKET=aero-agent-docs
 S3_ACCESS_KEY=minioadmin
 S3_SECRET_KEY=minioadmin
+S3_REGION=us-east-1
+MAX_FILE_SIZE_MB=20
+
+# External APIs — tools.module (opcionales, modo degradado si ausentes)
+NASA_API_KEY=          # opcional; usa DEMO_KEY con rate limit reducido si no está
+SERPAPI_KEY=           # requerido para web_search tool; sin él retorna error descriptivo
+ESA_BASE_URL=https://esasky.esac.esa.int   # default
+FAA_BASE_URL=https://external-api.faa.gov  # default
 
 # LLM Providers (solo los que se usen)
 OPENAI_API_KEY=sk-...
@@ -590,12 +652,18 @@ PORT=3000
 
 ### Módulos stub (sin rutas HTTP aún)
 
-Los siguientes módulos están importados en `app.module` pero sus controllers no tienen endpoints implementados todavía (Fase 3+):
+Los siguientes módulos están importados en `app.module` pero sus controllers aún no tienen endpoints implementados (Fase 4+):
 
-- `KnowledgeModule` — controllers `DocumentsController` e `IngestionController` vacíos
-- `WebhooksModule` — `WebhooksController` vacío
-- `AnalyticsModule` — `MetricController` vacío
-- `HealthModule` — `HealthController` vacío
+- `WebhooksModule` — `WebhooksController` pendiente (Fase 4)
+- `AnalyticsModule` — `MetricController` pendiente (Fase 4)
+- `HealthModule` — `HealthController` pendiente (Fase 4)
+
+### Issues Fase 3 — pendientes menores
+
+- **Migración DB `useTools`**: la columna `bots.use_tools boolean DEFAULT false` fue añadida a la entidad pero no hay migración TypeORM generada todavía. Ejecutar `pnpm typeorm migration:generate` antes de desplegar en BD existente.
+- **`multi: true` en providers**: NestJS v11 tiene tipado incompleto para `multi: true` en `ClassProvider`. Ambos módulos (`knowledge`, `tools`) usan el patrón `useFactory` como workaround equivalente.
+- **Function calling loop**: `AiService.generateWithTools()` detecta tool calls desde la respuesta JSON acumulada de la primera llamada. Los providers LLM actuales no procesan `config.tools` en streaming nativo — funciona con modelos OpenAI/Groq que retornan structured JSON, pero requiere verificación por provider en producción.
+- **S3/MinIO no verificado en seco**: `StorageService` inicializa el `S3Client` en el constructor; si las credenciales son incorrectas el error se manifiesta en runtime (upload/download), no en el arranque del módulo.
 
 ### RAG — Limitaciones actuales
 
@@ -613,6 +681,20 @@ No hay tests unitarios ni e2e para ningún módulo de Fase 2. Pendiente para est
 ---
 
 ## Changelog
+
+## [0.3.0] — 2026-05-19
+### Added
+- knowledge.module: upload de documentos con S3/MinIO, 4 parsers (PDF, DOCX, TXT, URL)
+- knowledge.module: pipeline asíncrono de ingesta vía BullMQ + DocumentIngestionProcessor
+- tools.module: 4 herramientas aeroespaciales (NASA, ESA, FAA, web search)
+- tools.module: auto-registro de tools via `@Tool()` decorator + `ToolRegistryService`
+- botWorker: `DocumentIngestionProcessor` con `WorkerHost` para queue `document-ingestion`
+### Changed
+- ai.module: integración opcional de function calling — `generateWithTools()` en `AiService`
+- ai.module: `LlmConfig` extendida con campos opcionales `tools` y `tool_choice`
+- rag.module: `EmbeddingService` soporta `embedBatch()` para ingesta masiva en lotes de 50
+- chat.module: `ChatService` usa `generateWithTools` cuando `bot.useTools === true`
+- libs/database: `Bot` entity añade campo `useTools: boolean` (default `false`)
 
 ## [0.2.0] — 2026-05-18
 ### Added
@@ -635,5 +717,5 @@ No hay tests unitarios ni e2e para ningún módulo de Fase 2. Pendiente para est
 
 ---
 
-*Última actualización: 2026-05-18 — Fase 2 completa*  
+*Última actualización: 2026-05-19 — Fase 3 completa*  
 *Actualizar este archivo con cada decisión arquitectural relevante*

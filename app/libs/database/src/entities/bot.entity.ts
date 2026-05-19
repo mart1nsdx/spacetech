@@ -72,6 +72,9 @@ export class Bot extends BaseEntity {
   @Column({ type: 'boolean', default: false })
   isPublic!: boolean;
 
+  @Column({ type: 'boolean', default: false })
+  useTools!: boolean;
+
   @Column({ type: 'int', default: 0 })
   totalSessions!: number;
 
