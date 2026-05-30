@@ -144,24 +144,59 @@ DocumentIngestionProcessor
 KnowledgeDocument.status = READY
 ```
 
+### Flujo de eventos cruzados
+
+```
+Usuario envía mensaje
+       ↓
+chat.service.handleMessage()
+  ├── rag.service.retrieve()          → enriquece contexto con documentos
+  ├── ai.service.generateStream()     → streaming de tokens al cliente
+  ├── messages.service.create()       → persiste mensaje en DB
+  ├── analyticsService.track()        → fire-and-forget (MESSAGE_SENT)
+  └── webhookDispatcher.dispatch()    → fire-and-forget (message.created)
+                                             ↓
+                                      BullMQ queue 'webhook-delivery'
+                                             ↓
+                                      WebhookDeliveryProcessor (botWorker)
+                                             ↓
+                                      POST al endpoint del cliente (HMAC firmado)
+```
+
+### Mecanismo de plan limits
+
+```
+Request a POST /bots (crear bot)
+       ↓
+JwtAuthGuard → TenantIsolationGuard → RolesGuard → PlanLimitGuard
+                                                          ↓
+                                               @PlanRequired('bots')
+                                                          ↓
+                                         usage.service.getCurrentUsage(orgId)
+                                                          ↓
+                                         PLAN_LIMITS[org.plan].bots vs usage.bots
+                                                          ↓
+                                              ✓ permitir  /  ✗ 403 Forbidden
+```
+
 ---
 
 ## Estado de implementación
 
-| Módulo           | Fase   | Estado       | Archivos | Notas                              |
-|------------------|--------|--------------|----------|------------------------------------|
-| auth.module      | Fase 1 | ✅ Completo  | 23       | JWT + API Keys + Refresh rotation  |
-| tenants.module   | Fase 1 | ✅ Completo  | 18       | Multi-tenancy + RBAC + Plan limits |
-| bots.module      | Fase 2 | ✅ Completo  | 12       | Redis cache + multi-provider       |
-| chat.module      | Fase 2 | ✅ Completo  | 16       | WebSocket streaming + RAG context        |
-| ai.module        | Fase 2 | ✅ Completo  | 14       | OpenAI, Anthropic, Groq, Ollama          |
-| rag.module       | Fase 2 | ✅ Completo  | 9        | pgvector + chunking + reranking          |
-| knowledge.module | Fase 3 | ✅ Completo  | 18       | S3/MinIO + parsers Strategy + BullMQ     |
-| tools.module     | Fase 3 | ✅ Completo  | 11       | NASA, ESA, FAA, SerpAPI + function call  |
-| webhooks.module  | Fase 4 | ⏳ Pendiente | —        | HMAC-SHA256 + retry exponencial          |
-| analytics.module | Fase 4 | ⏳ Pendiente | —        | Métricas + usage tracking                |
-| health.module    | Fase 4 | ⏳ Pendiente | —        | Liveness + readiness probes              |
-| common/          | Fase 5 | ⏳ Pendiente | —        | Filters, interceptors, pipes globales    |
+| Módulo           | Fase   | Estado       | Archivos | Descripción                                    |
+|------------------|--------|--------------|----------|------------------------------------------------|
+| auth.module      | Fase 1 | ✅ Completo  | 23       | JWT access/refresh · API Keys · RBAC           |
+| tenants.module   | Fase 1 | ✅ Completo  | 18       | Multi-tenancy · Roles · Plan limits            |
+| bots.module      | Fase 2 | ✅ Completo  | 12       | CRUD bots · Redis cache · config por provider  |
+| chat.module      | Fase 2 | ✅ Completo  | 16       | WebSocket streaming · sesiones · RAG context   |
+| ai.module        | Fase 2 | ✅ Completo  | 14       | OpenAI · Anthropic · Groq · Ollama             |
+| rag.module       | Fase 2 | ✅ Completo  | 9        | pgvector · chunking · reranking · embeddings   |
+| knowledge.module | Fase 3 | ✅ Completo  | 18       | S3/MinIO · PDF/DOCX/TXT/URL · BullMQ pipeline  |
+| tools.module     | Fase 3 | ✅ Completo  | 11       | NASA · ESA · FAA · SerpAPI · function calling  |
+| webhooks.module  | Fase 4 | ✅ Completo  | 12       | HMAC-SHA256 · AES-256 · retry exponencial      |
+| analytics.module | Fase 4 | ✅ Completo  | 10       | Event tracking · métricas · usage para plans   |
+| health.module    | Fase 4 | ✅ Completo  | 6        | Liveness · readiness · 4 indicators            |
+| common/          | Fase 5 | ⏳ Pendiente | —        | Filters · interceptors · pipes globales        |
 
 ---
 
@@ -441,9 +476,27 @@ Acceso entre servicios internos → Sin auth (red privada Docker/K8s)
 Servicios que levanta `docker-compose.yml` para desarrollo:
 
 ```yaml
-postgres:   postgres:16 + extensión pgvector  → puerto 5432
-redis:      redis:7-alpine                    → puerto 6379
-minio:      minio/minio                       → puerto 9000 (S3-compatible)
+version: '3.9'
+services:
+  postgres:
+    image: ankane/pgvector:latest    # pgvector incluido
+    environment:
+      POSTGRES_DB: aeroagent
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports: ["5432:5432"]
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+
+  minio:
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports: ["9000:9000", "9001:9001"]
 ```
 
 `botBackEnd` y `botWorker` corren con `pnpm dev` directamente en el host (no en Docker durante desarrollo) para hot-reload rápido.
@@ -600,6 +653,40 @@ Activadas por bot con `useTools: true` en la entidad `Bot`. El LLM recibe los sc
 | faa_airspace | NOTAMs y espacio aéreo FAA               | No                 |
 | web_search   | Búsqueda web general (SerpAPI)           | Sí (SERPAPI_KEY)   |
 
+### Fase 4 — Integraciones
+
+#### Webhooks
+
+| Método | Ruta                   | Roles        | Descripción                                  |
+|--------|------------------------|--------------|----------------------------------------------|
+| POST   | /webhooks              | ADMIN, OWNER | Crear webhook (retorna secret una sola vez)  |
+| GET    | /webhooks              | cualquiera   | Listar webhooks de la org                    |
+| GET    | /webhooks/:id          | cualquiera   | Obtener webhook                              |
+| PATCH  | /webhooks/:id          | ADMIN, OWNER | Actualizar URL o eventos                     |
+| PATCH  | /webhooks/:id/toggle   | ADMIN, OWNER | Activar / desactivar                         |
+| DELETE | /webhooks/:id          | ADMIN, OWNER | Eliminar webhook                             |
+
+**Seguridad:** Cada delivery incluye header `X-Aero-Signature: sha256=` para verificación.  
+**Eventos disponibles:** `message.created`, `session.started`, `session.ended`,
+`document.processed`, `document.failed`, `bot.updated`
+
+#### Analytics
+
+| Método | Ruta                          | Descripción                                |
+|--------|-------------------------------|--------------------------------------------|
+| GET    | /analytics/dashboard          | Métricas agregadas (30 días por defecto)   |
+| GET    | /analytics/metrics/messages   | Volumen de mensajes con granularidad       |
+| GET    | /analytics/metrics/top-bots   | Top bots por actividad                     |
+| GET    | /analytics/usage              | Uso actual vs límites del plan             |
+| GET    | /analytics/events             | Eventos raw paginados                      |
+
+#### Health
+
+| Método | Ruta           | Auth | Descripción                                   |
+|--------|----------------|------|-----------------------------------------------|
+| GET    | /health/live   | No   | Liveness probe (siempre 200 si proceso vivo)  |
+| GET    | /health/ready  | No   | Readiness probe (503 si DB o Redis fallan)    |
+
 ---
 
 ## Variables de entorno requeridas
@@ -635,6 +722,11 @@ OLLAMA_BASE_URL=http://localhost:11434
 JWT_SECRET=cambiar-en-produccion
 JWT_EXPIRATION=1h
 
+# Webhooks
+WEBHOOK_ENCRYPTION_KEY=           # AES-256 para secrets; generar con: openssl rand -hex 32
+WEBHOOK_TIMEOUT_MS=10000          # Timeout por delivery (ms); default 10000
+WEBHOOK_MAX_ATTEMPTS=5            # Reintentos con backoff exponencial; default 5
+
 # App
 NODE_ENV=development
 PORT=3000
@@ -649,14 +741,6 @@ PORT=3000
 - **PostgreSQL + pgvector requeridos**: el backend no arranca sin conexión a Postgres. Levantar con `docker compose up -d` desde `infraestructura/docker/`.
 - **Redis requerido**: `BotsModule` crea el cliente `ioredis` en el factory de providers. Si Redis no está disponible, el módulo falla en `onModuleInit`. No hay modo degradado.
 - **pgvector extension**: si la extensión `vector` no está instalada en PostgreSQL, `RetrievalService.similaritySearch()` atrapa el error y retorna `[]` — el chat sigue funcionando pero sin contexto RAG. Instalar con `CREATE EXTENSION IF NOT EXISTS vector;`.
-
-### Módulos stub (sin rutas HTTP aún)
-
-Los siguientes módulos están importados en `app.module` pero sus controllers aún no tienen endpoints implementados (Fase 4+):
-
-- `WebhooksModule` — `WebhooksController` pendiente (Fase 4)
-- `AnalyticsModule` — `MetricController` pendiente (Fase 4)
-- `HealthModule` — `HealthController` pendiente (Fase 4)
 
 ### Issues Fase 3 — pendientes menores
 
@@ -692,6 +776,22 @@ No hay tests unitarios ni e2e para ningún módulo de Fase 2. Pendiente para est
 ---
 
 ## Changelog
+
+## [0.4.0] — 2026-05-29
+### Added
+- webhooks.module: HMAC-SHA256 firmado, AES-256-GCM para secrets, retry exponencial (5 intentos)
+- webhooks.module: eventos message.created, session.started, session.ended, document.processed, document.failed, bot.updated
+- analytics.module: event tracking fire-and-forget, métricas con date_trunc, series temporales
+- analytics.module: usage.service integrado con plan-limit.guard para enforcement de planes
+- health.module: liveness y readiness probes con @nestjs/terminus v11, 4 indicators (DB, Redis, Storage, LLM)
+- botWorker: webhook-delivery.processor con BullMQ consumer y backoff exponencial
+### Changed
+- chat.service: integrado webhook dispatch (message.created) y analytics tracking (MESSAGE_SENT)
+- sessions.service: integrado webhook dispatch (session.started, session.ended)
+- documents.service: integrado webhook dispatch (document.processed, document.failed) y analytics tracking
+- bots.service: integrado webhook dispatch (bot.updated)
+- tenants/plan-limit.guard: ahora usa usage.service real en lugar de placeholder jerárquico
+- app.module: importados 3 nuevos módulos de Fase 4 (total: 11 módulos activos)
 
 ## [0.3.1] — 2026-05-19
 ### Fixed
@@ -736,5 +836,5 @@ No hay tests unitarios ni e2e para ningún módulo de Fase 2. Pendiente para est
 
 ---
 
-*Última actualización: 2026-05-19 — Fase 3 completa*  
+*Última actualización: 2026-05-29 — Fase 4 completa (11/12 módulos)*  
 *Actualizar este archivo con cada decisión arquitectural relevante*

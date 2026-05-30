@@ -12,7 +12,8 @@
       "PowerShell(Get-ChildItem \"c:\\\\Users\\\\juanj\\\\OneDrive\\\\Documentos\\\\spaceTech AESS\\\\spacetech\\\\app\\\\botBackEnd\\\\src\" -Recurse | Where-Object { $_.Extension -eq '.js' } | Select-Object FullName)",
       "PowerShell(cmd /c \"dir /s /b `\"c:\\\\Users\\\\juanj\\\\OneDrive\\\\Documentos\\\\spaceTech AESS\\\\spacetech\\\\app\\\\botBackEnd\\\\src`\"\")",
       "Bash(npx tsc *)",
-      "Bash(pnpm --filter botBackEnd exec tsc --noEmit)"
+      "Bash(pnpm --filter botBackEnd exec tsc --noEmit)",
+      "Bash(node -e ' *)"
     ]
   }
 }

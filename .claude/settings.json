@@ -49,7 +49,15 @@
       "Bash(echo \"EXIT_WORKER:$?\")",
       "Bash(npx eslint *)",
       "Bash(echo \"BACKEND:$?\")",
-      "Bash(echo \"WORKER:$?\")"
+      "Bash(echo \"WORKER:$?\")",
+      "Bash(Get-ChildItem -Force)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\('imports', d.get\\('workspaces', {}\\)\\), indent=2\\)\\)\")",
+      "Bash(mkdir -p \"c:/Users/juanj/OneDrive/Documentos/spaceTech AESS/spacetech/app/botBackEnd/src/modules/webhooks/constants\")",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\juanj\\\\OneDrive\\\\Documentos\\\\spaceTech AESS\\\\spacetech\\\\app\\\\botBackEnd\\\\src\\\\modules\\\\health\\\\\" -ErrorAction SilentlyContinue | Select-Object Name)",
+      "Bash(pnpm --filter botBackEnd add @nestjs/terminus)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\juanj\\OneDrive\\Documentos\\spaceTech AESS\\spacetech\\app\\botBackEnd\\src\\modules\\webhooks"
     ]
   }
 }
