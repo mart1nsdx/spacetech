@@ -1,4 +1,6 @@
-# ARCHITECTURE.md — Aero Bot - README.md 
+# ARCHITECTURE.md — Aero Bot - README.md
+
+![version](https://img.shields.io/badge/version-1.0.0-blue) ![status](https://img.shields.io/badge/backend-complete-brightgreen) ![modules](https://img.shields.io/badge/modules-12%2F12-brightgreen) ![build](https://img.shields.io/badge/build-passing-brightgreen)
 
 > Documento de referencia para Claude Code y el equipo de desarrollo.
 > Contiene todas las decisiones arquitecturales tomadas antes de escribir código.
@@ -183,6 +185,8 @@ JwtAuthGuard → TenantIsolationGuard → RolesGuard → PlanLimitGuard
 
 ## Estado de implementación
 
+**Estado del backend: ✅ 12/12 módulos completos · 45 rutas HTTP · WebSocket · 2 workers**
+
 | Módulo           | Fase   | Estado       | Archivos | Descripción                                    |
 |------------------|--------|--------------|----------|------------------------------------------------|
 | auth.module      | Fase 1 | ✅ Completo  | 23       | JWT access/refresh · API Keys · RBAC           |
@@ -196,7 +200,7 @@ JwtAuthGuard → TenantIsolationGuard → RolesGuard → PlanLimitGuard
 | webhooks.module  | Fase 4 | ✅ Completo  | 12       | HMAC-SHA256 · AES-256 · retry exponencial      |
 | analytics.module | Fase 4 | ✅ Completo  | 10       | Event tracking · métricas · usage para plans   |
 | health.module    | Fase 4 | ✅ Completo  | 6        | Liveness · readiness · 4 indicators            |
-| common/          | Fase 5 | ⏳ Pendiente | —        | Filters · interceptors · pipes globales        |
+| common/          | Fase 5 | ✅ Completo  | 16       | Filters · interceptors · pipes · DTOs globales |
 
 ---
 
@@ -380,6 +384,26 @@ RESTRICCIONES:
 
 CONOCIMIENTO DISPONIBLE:
 ${retrievedContext}`
+```
+
+### Capa transversal (common/)
+
+```
+Request entrante
+   ↓
+LoggingInterceptor      → genera correlationId, loggea método/path/duration
+   ↓
+TimeoutInterceptor      → cancela si excede 30s (excepto uploads)
+   ↓
+ValidationPipe (global) → whitelist + transform de DTOs
+   ↓
+[ Guards: JwtAuth → TenantIsolation → Roles → PlanLimit ]
+   ↓
+Controller → Service → ...
+   ↓
+TransformInterceptor    → envuelve respuesta en { success, data, timestamp }
+   ↓
+Response (si hay error → HttpExceptionFilter / AllExceptionsFilter)
 ```
 
 ### Estrategia RAG
@@ -689,6 +713,53 @@ Activadas por bot con `useTools: true` en la entidad `Bot`. El LLM recibe los sc
 
 ---
 
+## Formato de respuestas
+
+Todas las respuestas REST exitosas vienen envueltas en una estructura consistente:
+
+```json
+{
+  "success": true,
+  "data": { ... },
+  "timestamp": "2026-01-15T10:30:00.000Z"
+}
+```
+
+Las respuestas paginadas incluyen meta:
+
+```json
+{
+  "success": true,
+  "data": [ ... ],
+  "meta": {
+    "total": 150, "page": 1, "limit": 20,
+    "totalPages": 8, "hasNext": true, "hasPrev": false
+  },
+  "timestamp": "..."
+}
+```
+
+Los errores siguen este formato:
+
+```json
+{
+  "success": false,
+  "statusCode": 400,
+  "message": "Mensaje de error (o array de errores de validación)",
+  "error": "Bad Request",
+  "path": "/bots",
+  "timestamp": "...",
+  "correlationId": "uuid"
+}
+```
+
+**Excepciones (no se envuelven):** WebSocket streaming, endpoints `/health/*`,
+y respuestas de tipo `text/event-stream`.
+
+Cada request recibe un header `X-Correlation-Id` para trazabilidad en logs.
+
+---
+
 ## Variables de entorno requeridas
 
 ```bash
@@ -775,7 +846,38 @@ No hay tests unitarios ni e2e para ningún módulo de Fase 2. Pendiente para est
 
 ---
 
+## Roadmap
+
+El backend core está completo. Próximos pasos sugeridos:
+
+- [ ] **Testing**: suite de tests unitarios (Jest) y e2e (Supertest) por módulo
+- [ ] **CI/CD**: pipeline de GitHub Actions (lint → test → build → deploy)
+- [ ] **Observabilidad**: integración con OpenTelemetry, métricas Prometheus
+- [ ] **Rate limiting**: @nestjs/throttler por organización y API key
+- [ ] **SDK npm**: cliente TypeScript para integración (@aero-agent/sdk)
+- [ ] **CLI tool**: herramienta de línea de comandos para gestión
+- [ ] **Documentación API**: Swagger/OpenAPI con @nestjs/swagger
+- [ ] **Frontend**: dashboard de administración y widget embebible
+
+---
+
 ## Changelog
+
+## [1.0.0] — 2026-06-08
+### Added
+- common/: filters globales (HttpException, AllExceptions), 3 interceptors
+  (logging con correlationId, timeout, transform), pipes y DTOs de paginación
+- common/: sanitización de logs para redactar credenciales (password, token, apiKey, secret…)
+- common/: formato de respuesta unificado en toda la API REST
+### Changed
+- **BREAKING**: todas las respuestas REST ahora vienen envueltas en
+  `{ success, data, timestamp }` — actualizar clientes del API
+- app.module: registro global de filters, interceptors y validation pipe
+- query DTOs: extienden PaginationDto común (paginación consistente)
+### Notas
+- Backend core completo: 12 módulos, 45 rutas HTTP, WebSocket, 2 workers
+- tsc --noEmit → 0 errores · builds botBackEnd y botWorker exitosos
+- Listo para fase de testing, CI/CD y desarrollo del SDK
 
 ## [0.4.0] — 2026-06-07
 ### Added
@@ -836,5 +938,5 @@ No hay tests unitarios ni e2e para ningún módulo de Fase 2. Pendiente para est
 
 ---
 
-*Última actualización: 2026-06-07 — Fase 4 completa (11/12 módulos)*  
+*Última actualización: 2026-06-08 — v1.0.0 — Backend completo (12/12 módulos)*  
 *Actualizar este archivo con cada decisión arquitectural relevante*
