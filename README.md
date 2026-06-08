@@ -777,7 +777,7 @@ No hay tests unitarios ni e2e para ningún módulo de Fase 2. Pendiente para est
 
 ## Changelog
 
-## [0.4.0] — 2026-05-29
+## [0.4.0] — 2026-06-07
 ### Added
 - webhooks.module: HMAC-SHA256 firmado, AES-256-GCM para secrets, retry exponencial (5 intentos)
 - webhooks.module: eventos message.created, session.started, session.ended, document.processed, document.failed, bot.updated
@@ -836,5 +836,5 @@ No hay tests unitarios ni e2e para ningún módulo de Fase 2. Pendiente para est
 
 ---
 
-*Última actualización: 2026-05-29 — Fase 4 completa (11/12 módulos)*  
+*Última actualización: 2026-06-07 — Fase 4 completa (11/12 módulos)*  
 *Actualizar este archivo con cada decisión arquitectural relevante*
