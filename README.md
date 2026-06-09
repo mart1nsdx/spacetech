@@ -846,6 +846,91 @@ No hay tests unitarios ni e2e para ningún módulo de Fase 2. Pendiente para est
 
 ---
 
+## Entorno de desarrollo
+
+### Requisitos previos
+- Docker Desktop ≥ 4.x (incluye Docker Compose v2)
+- Node.js 20 + pnpm (solo para desarrollo local fuera de Docker)
+- En Windows: WSL2 o Git Bash para usar `make`
+
+### Levantar el stack completo
+
+```bash
+# 1. Copia y configura las variables de entorno
+cp app/.env.example app/.env
+# Edita app/.env — como mínimo rellena WEBHOOK_ENCRYPTION_KEY:
+#   openssl rand -hex 32
+
+# 2. Levanta todo con un solo comando (desde la raíz del proyecto)
+make dev
+```
+
+El comando `make dev` ejecuta en orden:
+1. **postgres** + **redis** + **minio** → arrancan con healthcheck
+2. **minio-init** → crea el bucket `aeroagent-docs` y termina
+3. **migrations** → corre las migraciones TypeORM y termina
+4. **botBackEnd** → API REST + WebSocket en `http://localhost:3000`
+5. **botWorker** → consumers BullMQ (sin puerto expuesto)
+
+### Comandos disponibles
+
+| Comando | Descripción |
+|---|---|
+| `make dev` | Levanta todo (reconstruye imágenes) |
+| `make infra` | Solo infraestructura (postgres, redis, minio) |
+| `make stop` | Detiene todos los servicios |
+| `make clean` | Detiene y **elimina volúmenes** ⚠ borra datos |
+| `make logs` | Tail de todos los logs |
+| `make logs s=botBackEnd` | Tail de un servicio específico |
+| `make ps` | Estado de los contenedores |
+| `make migrate` | Corre las migraciones manualmente |
+| `make psql` | Abre sesión psql en el contenedor |
+| `make build` | Reconstruye imágenes sin cache |
+
+### Puertos expuestos
+
+| Servicio | Puerto | Descripción |
+|---|---|---|
+| botBackEnd | 3000 | API REST + WebSocket |
+| PostgreSQL | 5432 | Base de datos principal |
+| Redis | 6379 | Cache + cola BullMQ |
+| MinIO S3 API | 9000 | Almacenamiento de documentos |
+| MinIO Console | 9001 | UI web → `http://localhost:9001` (minioadmin/minioadmin) |
+
+### Desarrollo local (sin Docker para la app)
+
+Si prefieres correr la app directamente y solo usar Docker para la infra:
+
+```bash
+# 1. Levanta solo la infraestructura
+make infra
+
+# 2. Instala dependencias y arranca la app
+cd app
+pnpm install
+pnpm --filter botBackEnd run start:dev
+# En otra terminal:
+pnpm --filter botWorker run start:dev
+```
+
+---
+
+## Variables de entorno
+
+El archivo `app/.env.example` contiene todas las variables con valores por
+defecto para desarrollo local con MinIO. Las variables críticas que **debes**
+cambiar antes de cualquier despliegue en producción:
+
+| Variable | Descripción |
+|---|---|
+| `JWT_SECRET` | Secreto para firmar access tokens |
+| `JWT_REFRESH_SECRET` | Secreto para firmar refresh tokens |
+| `WEBHOOK_ENCRYPTION_KEY` | Clave AES-256-GCM para secretos de webhooks (`openssl rand -hex 32`) |
+| `S3_ACCESS_KEY` / `S3_SECRET_KEY` | Credenciales S3 reales en producción |
+| `DATABASE_URL` | URL de la base de datos (Compose la sobreescribe automáticamente) |
+
+---
+
 ## Roadmap
 
 El backend core está completo. Próximos pasos sugeridos:
