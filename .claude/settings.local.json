@@ -14,7 +14,9 @@
       "Bash(npx tsc *)",
       "Bash(pnpm --filter botBackEnd exec tsc --noEmit)",
       "Bash(node -e ' *)",
-      "Bash(Get-ChildItem -Path . -Directory)"
+      "Bash(Get-ChildItem -Path . -Directory)",
+      "Bash(NODE_PATH='c:/Users/juanj/OneDrive/Documentos/spaceTech AESS/spacetech/app/botBackEnd/node_modules' node -e ' *)",
+      "Bash(grep -r \"from.*knowledge\\\\|from.*\\\\/knowledge\\\\|@aero-agent/knowledge\" --include=\"*.ts\" modules/chat/ modules/ai/ modules/bots/ modules/tenants/ modules/auth/)"
     ]
   }
 }

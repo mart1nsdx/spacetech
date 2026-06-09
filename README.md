@@ -1023,5 +1023,5 @@ El backend core está completo. Próximos pasos sugeridos:
 
 ---
 
-*Última actualización: 2026-06-08 — v1.0.0 — Backend completo (12/12 módulos)*  
+*Última actualización: 2026-06-08 — v1.0.0 — Backend completo (12/12 módulos) + infraestrucutura*  
 *Actualizar este archivo con cada decisión arquitectural relevante*
